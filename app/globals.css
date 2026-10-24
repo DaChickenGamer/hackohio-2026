@@ -71,22 +71,6 @@ button:hover { color: var(--primary) }
 }
 .brand:hover { color: #fff !important; text-decoration: none }
 .brand-dot { color: var(--accent) }
-.brand-mark {
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  background: rgba(255,255,255,.15);
-  border-radius: var(--radius);
-  font-size: 18px;
-  font-style: normal;
-  color: #fff;
-  line-height: 1;
-  position: relative;
-}
-.brand-mark span { display: none }
 
 .workspace-label {
   font-size: 12px;
@@ -1101,9 +1085,7 @@ form input:focus, form textarea:focus, form select:focus {
 @media (max-width: 900px) {
   .sidebar { width: 72px; padding: 0 }
   .workspace { margin-left: 72px }
-  .brand { font-size: 0; padding: 0; justify-content: center }
-  .brand-dot { display: none }
-  .brand-mark { margin: 0 }
+  .brand { font-size: 14px; padding: 0; justify-content: center; letter-spacing: .01em }
   .workspace-label, .side-note, .sidebar-bottom { display: none }
   nav { margin-top: 8px; padding: 0 4px }
   .nav-item { font-size: 0; padding: 14px; justify-content: center; gap: 0 }
