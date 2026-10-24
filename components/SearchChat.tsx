@@ -32,6 +32,14 @@ const suggestions = [
   'Climate & energy builds',
 ];
 
+function FolioWordmark({ light = false }: { light?: boolean }) {
+  return (
+    <span className={`folio-wordmark ${light ? 'is-light' : ''}`}>
+      folio<span>.</span>
+    </span>
+  );
+}
+
 function messageText(message: UIMessage) {
   return message.parts
     .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
@@ -153,16 +161,16 @@ export default function SearchChat({
   return (
     <div className={`search-chat ${open ? 'is-open' : ''}`}>
       {open && (
-        <section id="search-chat-panel" className="search-chat-panel" aria-label="Posting search assistant">
+        <section id="search-chat-panel" className="search-chat-panel" aria-label="Folio discovery assistant">
           <header className="search-chat-header">
-            <div>
-              <p className="eyebrow">DISCOVERY ASSISTANT</p>
-              <strong>Ask Folio what to build next.</strong>
+            <div className="search-chat-brand">
+              <FolioWordmark light />
+              <p className="search-chat-kicker">Catalogue discovery</p>
             </div>
             <div className="search-chat-header-actions">
               <button
                 type="button"
-                className="text-button"
+                className="search-chat-ghost"
                 onClick={() => {
                   setMessages([]);
                   appliedRef.current = '';
@@ -172,11 +180,11 @@ export default function SearchChat({
               </button>
               <button
                 type="button"
-                className="dialog-close"
+                className="search-chat-ghost"
                 aria-label="Close assistant"
                 onClick={() => setOpen(false)}
               >
-                ×
+                Close
               </button>
             </div>
           </header>
@@ -184,8 +192,12 @@ export default function SearchChat({
           <div className="search-chat-body" ref={listRef}>
             {messages.length === 0 && (
               <div className="search-chat-empty">
-                <span>✧</span>
-                <p>Describe an interest, industry, or stack. I’ll search the catalogue for matching challenges and community projects.</p>
+                <FolioWordmark />
+                <strong>Find a posting worth building.</strong>
+                <p>
+                  Ask about an industry, stack, or difficulty. Folio will search the catalogue and surface matching
+                  challenges and community projects.
+                </p>
                 <div className="search-chat-suggestions">
                   {suggestions.map((prompt) => (
                     <button key={prompt} type="button" onClick={() => submit(prompt)}>
@@ -199,11 +211,15 @@ export default function SearchChat({
             {messages.map((message) => {
               const text = messageText(message);
               const hits = searchOutputs(message).flatMap((output) => output.matches ?? []);
+              const isUser = message.role === 'user';
               return (
-                <div
+                <article
                   key={message.id}
-                  className={`search-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
+                  className={`search-chat-turn ${isUser ? 'is-user' : 'is-assistant'}`}
                 >
+                  <div className="search-chat-turn-meta">
+                    {isUser ? <span className="search-chat-you">You</span> : <FolioWordmark />}
+                  </div>
                   {text && (
                     <div
                       className="search-chat-copy"
@@ -230,11 +246,11 @@ export default function SearchChat({
                       ))}
                     </div>
                   )}
-                </div>
+                </article>
               );
             })}
 
-            {busy && <div className="search-chat-typing">Searching postings…</div>}
+            {busy && <div className="search-chat-typing">Searching the catalogue…</div>}
             {error && (
               <div className="search-chat-error" role="alert">
                 Something went wrong. Try again in a moment.
@@ -243,15 +259,18 @@ export default function SearchChat({
           </div>
 
           <form className="search-chat-form" onSubmit={onSubmit}>
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Try “beginner React” or “healthcare challenges”…"
-              aria-label="Ask the posting search assistant"
-              disabled={busy}
-            />
-            <button type="submit" className="primary" disabled={busy || !input.trim()}>
-              Ask
+            <label className="search-chat-field">
+              <span className="sr-only">Ask Folio</span>
+              <input
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="What do you want to build?"
+                aria-label="Ask Folio about postings"
+                disabled={busy}
+              />
+            </label>
+            <button type="submit" className="search-chat-submit" disabled={busy || !input.trim()}>
+              Search
             </button>
           </form>
         </section>
@@ -259,13 +278,13 @@ export default function SearchChat({
 
       <button
         type="button"
-        className="search-chat-fab"
+        className="search-chat-launch"
         aria-expanded={open}
         aria-controls="search-chat-panel"
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden="true">{open ? '×' : '✦'}</span>
-        {open ? 'Close' : 'Ask Folio'}
+        <FolioWordmark light />
+        <span>{open ? 'Hide assistant' : 'Ask about postings'}</span>
       </button>
     </div>
   );

@@ -120,17 +120,32 @@ function heuristicSearchInput(text: string) {
     'Fintech',
     'Healthcare',
     'Cybersecurity',
+    'Consumer tech',
+    'Enterprise software',
+    'E-commerce',
+    'Entertainment',
+    'Education',
+    'Travel',
+    'Transportation',
+    'Productivity',
+    'Design tools',
+    'Social media',
+    'AI & hardware',
+    'Aerospace',
   ];
   const technologies = [
     'Python',
     'React',
     'JavaScript',
+    'TypeScript',
     'Supabase',
     'Accessibility',
     'Cybersecurity',
     'Data visualization',
     'Web development',
     'AI / ML',
+    'Mobile',
+    'API integration',
   ];
   const industry = industries.find((value) => {
     const needle = value.toLowerCase();
