@@ -1268,9 +1268,24 @@ form input:focus, form textarea:focus, form select:focus {
   font-size: 13px;
   line-height: 1.5;
   box-shadow: var(--shadow-1);
-  white-space: pre-wrap;
 }
-.search-chat-bubble p { margin: 0 }
+.search-chat-copy { display: grid; gap: 8px }
+.search-chat-copy p { margin: 0 }
+.search-chat-copy ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 4px;
+}
+.search-chat-copy li { margin: 0 }
+.search-chat-copy code {
+  font-family: 'Roboto Mono', monospace;
+  font-size: .92em;
+  padding: 0 3px;
+  background: rgba(0,0,0,.06);
+  border-radius: 2px;
+}
+.search-chat-bubble.is-user .search-chat-copy code { background: rgba(255,255,255,.18) }
 .search-chat-bubble.is-user {
   align-self: flex-end;
   background: var(--primary);

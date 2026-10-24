@@ -40,6 +40,48 @@ function messageText(message: UIMessage) {
     .trim();
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function inlineMarkdown(value: string) {
+  return escapeHtml(value)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*(?!\s)(.+?)(?!\s)\*(?!\*)/g, '$1<em>$2</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function renderChatHtml(text: string) {
+  const cleaned = text
+    .replace(/\r\n/g, '\n')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*]{3,}\s*$/gm, '');
+  const blocks = cleaned
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return blocks
+    .map((block) => {
+      const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
+      const isList = lines.every((line) => /^([-*•]|\d+[.)])\s+/.test(line));
+      if (isList) {
+        const items = lines
+          .map((line) => line.replace(/^([-*•]|\d+[.)])\s+/, ''))
+          .map((item) => `<li>${inlineMarkdown(item)}</li>`)
+          .join('');
+        return `<ul>${items}</ul>`;
+      }
+      return `<p>${lines.map((line) => inlineMarkdown(line)).join('<br />')}</p>`;
+    })
+    .join('');
+}
+
 function searchOutputs(message: UIMessage): SearchOutput[] {
   return message.parts.flatMap((part) => {
     const isSearchTool =
@@ -162,7 +204,12 @@ export default function SearchChat({
                   key={message.id}
                   className={`search-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
                 >
-                  {text && <p>{text}</p>}
+                  {text && (
+                    <div
+                      className="search-chat-copy"
+                      dangerouslySetInnerHTML={{ __html: renderChatHtml(text) }}
+                    />
+                  )}
                   {hits.length > 0 && (
                     <div className="search-chat-hits">
                       {hits.map((hit) => (

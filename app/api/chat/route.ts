@@ -1,3 +1,4 @@
+import { createOpenAI } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -48,7 +49,8 @@ Be concise, warm, and concrete. Prefer 2–4 strong matches over long lists.
 When recommending, mention the company/builder, industry, and why it fits.
 Do not invent postings that are not in search results.
 If nothing matches, suggest broader keywords or a different industry/tech.
-You are not a job board — frame results as things to build and learn from.`;
+You are not a job board — frame results as things to build and learn from.
+Write in plain readable prose. Do not use markdown headings, code fences, or raw formatting symbols. Short paragraphs or simple bullet lists are fine.`;
 
 function createSearchTool(catalogue: CatalogueItem[]) {
   return tool({
@@ -57,6 +59,33 @@ function createSearchTool(catalogue: CatalogueItem[]) {
     inputSchema: postingSchema,
     execute: async (input) => searchCatalogue(catalogue, input),
   });
+}
+
+function resolveModel() {
+  const openaiKey =
+    process.env.OPENAI_API_KEY?.trim() ||
+    (process.env.AI_GATEWAY_API_KEY?.trim()?.startsWith('sk-')
+      ? process.env.AI_GATEWAY_API_KEY.trim()
+      : undefined);
+  const gatewayKey = process.env.AI_GATEWAY_API_KEY?.trim();
+  const hasGatewayOidc = Boolean(process.env.VERCEL_OIDC_TOKEN);
+
+  if (openaiKey) {
+    const openai = createOpenAI({ apiKey: openaiKey });
+    return {
+      kind: 'openai' as const,
+      model: openai('gpt-4o-mini'),
+    };
+  }
+
+  if ((gatewayKey && !gatewayKey.startsWith('sk-')) || hasGatewayOidc) {
+    return {
+      kind: 'gateway' as const,
+      model: 'google/gemini-2.5-flash' as const,
+    };
+  }
+
+  return null;
 }
 
 function lastUserText(messages: UIMessage[]) {
@@ -167,20 +196,36 @@ function localAssistantReply(catalogue: CatalogueItem[], messages: UIMessage[]) 
   });
 }
 
+function errorReply(message: string) {
+  return createUIMessageStreamResponse({
+    stream: createUIMessageStream({
+      execute: ({ writer }) => {
+        const textId = 'error-text';
+        writer.write({ type: 'start' });
+        writer.write({ type: 'text-start', id: textId });
+        writer.write({ type: 'text-delta', id: textId, delta: message });
+        writer.write({ type: 'text-end', id: textId });
+        writer.write({ type: 'finish' });
+      },
+    }),
+  });
+}
+
 export async function POST(req: Request) {
   const body = await req.json();
   const messages = (body.messages ?? []) as UIMessage[];
   const extras = (body.catalogueExtras ?? []) as CatalogueItem[];
   const catalogue = mergeCatalogue(extras);
   const searchPostings = createSearchTool(catalogue);
+  const resolved = resolveModel();
 
-  if (!process.env.AI_GATEWAY_API_KEY && !process.env.VERCEL_OIDC_TOKEN) {
+  if (!resolved) {
     return localAssistantReply(catalogue, messages);
   }
 
   try {
     const result = streamText({
-      model: 'google/gemini-2.5-flash',
+      model: resolved.model,
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
       stopWhen: isStepCount(4),
@@ -191,9 +236,16 @@ export async function POST(req: Request) {
       stream: toUIMessageStream({
         stream: result.stream,
         tools: { searchPostings },
+        onError: (error) =>
+          error instanceof Error ? error.message : 'Chat model request failed.',
       }),
     });
-  } catch {
-    return localAssistantReply(catalogue, messages);
+  } catch (error) {
+    console.error('[chat]', error);
+    return errorReply(
+      error instanceof Error
+        ? `Chat model error: ${error.message}`
+        : 'Chat model request failed. Check your API key and try again.',
+    );
   }
 }
