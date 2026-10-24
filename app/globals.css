@@ -552,6 +552,21 @@ h1 {
   color: var(--muted);
   box-shadow: var(--shadow-1);
 }
+.search-scope {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff8f8;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 4px 6px;
+  height: 26px;
+  box-shadow: none;
+  cursor: pointer;
+}
 .searchbox input {
   border: none;
   background: none;
@@ -1366,11 +1381,12 @@ form input:focus, form textarea:focus, form select:focus {
 }
 .search-chat-hit strong { font-size: 12px; font-weight: 500; color: var(--ink) }
 .search-chat-hit small { color: var(--muted); font-size: 10px }
-.search-chat-typing, .search-chat-error {
+.search-chat-typing, .search-chat-typing-inline, .search-chat-error {
   font-size: 11px;
   color: var(--muted);
   padding-left: 1px;
 }
+.search-chat-typing-inline { margin: 6px 0 0 }
 .search-chat-error { color: var(--primary-dark) }
 .search-chat-form {
   display: flex;

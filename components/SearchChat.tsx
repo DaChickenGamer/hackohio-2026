@@ -7,6 +7,7 @@ import type { CatalogueHit, CatalogueItem } from '@/lib/catalogue';
 
 type SearchFilters = {
   query: string;
+  scope?: 'all' | 'company' | 'person';
   kind?: 'challenge' | 'project' | 'any';
   industry?: string;
   technology?: string;
@@ -26,10 +27,10 @@ type SearchOutput = {
 };
 
 const suggestions = [
+  'Challenges from Google',
+  'Projects by Maya',
   'Beginner React challenges',
   'Something in healthcare',
-  'Python data projects',
-  'Climate & energy builds',
 ];
 
 function FolioWordmark({ light = false }: { light?: boolean }) {
@@ -135,6 +136,7 @@ export default function SearchChat({
   }, [messages, busy, open]);
 
   useEffect(() => {
+    if (busy) return;
     const latest = [...messages].reverse().find((message) => message.role === 'assistant');
     if (!latest) return;
     const outputs = searchOutputs(latest);
@@ -144,7 +146,7 @@ export default function SearchChat({
     if (appliedRef.current === key) return;
     appliedRef.current = key;
     onApplyFilters(withFilters.filters);
-  }, [messages, onApplyFilters]);
+  }, [messages, onApplyFilters, busy]);
 
   function submit(text: string) {
     const next = text.trim();
@@ -208,10 +210,12 @@ export default function SearchChat({
               </div>
             )}
 
-            {messages.map((message) => {
+            {messages.map((message, index) => {
               const text = messageText(message);
               const hits = searchOutputs(message).flatMap((output) => output.matches ?? []);
               const isUser = message.role === 'user';
+              const isLiveAssistant = !isUser && busy && index === messages.length - 1;
+              const showHits = hits.length > 0 && !isLiveAssistant;
               return (
                 <article
                   key={message.id}
@@ -220,13 +224,18 @@ export default function SearchChat({
                   <div className="search-chat-turn-meta">
                     {isUser ? <span className="search-chat-you">You</span> : <FolioWordmark />}
                   </div>
-                  {text && (
+                  {text ? (
                     <div
                       className="search-chat-copy"
                       dangerouslySetInnerHTML={{ __html: renderChatHtml(text) }}
                     />
+                  ) : (
+                    isLiveAssistant && <p className="search-chat-typing-inline">Writing a reply…</p>
                   )}
-                  {hits.length > 0 && (
+                  {isLiveAssistant && text && hits.length > 0 && (
+                    <p className="search-chat-typing-inline">Gathering matching postings…</p>
+                  )}
+                  {showHits && (
                     <div className="search-chat-hits">
                       {hits.map((hit) => (
                         <button
@@ -250,7 +259,9 @@ export default function SearchChat({
               );
             })}
 
-            {busy && <div className="search-chat-typing">Searching the catalogue…</div>}
+            {busy && messages[messages.length - 1]?.role !== 'assistant' && (
+              <div className="search-chat-typing">Searching the catalogue…</div>
+            )}
             {error && (
               <div className="search-chat-error" role="alert">
                 Something went wrong. Try again in a moment.

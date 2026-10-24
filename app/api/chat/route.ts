@@ -22,7 +22,11 @@ const postingSchema = z.object({
   query: z
     .string()
     .optional()
-    .describe('Keywords for title, company, tags, industry, or description'),
+    .describe('Keywords for title, company, person, tags, industry, or description'),
+  scope: z
+    .enum(['all', 'company', 'person'])
+    .optional()
+    .describe('company = match company names, person = match builders/owners, all = everything'),
   kind: z
     .enum(['challenge', 'project', 'any'])
     .optional()
@@ -45,6 +49,8 @@ const postingSchema = z.object({
 const systemPrompt = `You are Folio's discovery assistant for HackOHI/O students.
 Help them find challenges (company/community problem briefs) and community projects in the catalogue.
 Always call searchPostings before recommending specific postings.
+Use scope "company" when the user asks for a company (Google, Stripe, NASA, etc.).
+Use scope "person" when they ask for a builder/person by name.
 Be concise, warm, and concrete. Prefer 2–4 strong matches over long lists.
 When recommending, mention the company/builder, industry, and why it fits.
 Do not invent postings that are not in search results.
@@ -104,6 +110,11 @@ function lastUserText(messages: UIMessage[]) {
 
 function heuristicSearchInput(text: string) {
   const lower = text.toLowerCase();
+  const scope = /\b(company|companies|org|organization)\b/.test(lower)
+    ? ('company' as const)
+    : /\b(person|people|builder|author|by)\b/.test(lower)
+      ? ('person' as const)
+      : ('all' as const);
   const kind = lower.includes('project')
     ? ('project' as const)
     : lower.includes('challenge')
@@ -157,6 +168,7 @@ function heuristicSearchInput(text: string) {
   const technology = technologies.find((value) => lower.includes(value.toLowerCase()));
   return {
     query: text,
+    scope,
     kind,
     industry,
     technology,
@@ -191,6 +203,9 @@ function localAssistantReply(catalogue: CatalogueItem[], messages: UIMessage[]) 
         const textId = 'local-text';
         const toolCallId = 'local-search';
         writer.write({ type: 'start' });
+        writer.write({ type: 'text-start', id: textId });
+        writer.write({ type: 'text-delta', id: textId, delta: lines.join('\n') });
+        writer.write({ type: 'text-end', id: textId });
         writer.write({
           type: 'tool-input-available',
           toolCallId,
@@ -202,9 +217,6 @@ function localAssistantReply(catalogue: CatalogueItem[], messages: UIMessage[]) 
           toolCallId,
           output: result,
         });
-        writer.write({ type: 'text-start', id: textId });
-        writer.write({ type: 'text-delta', id: textId, delta: lines.join('\n') });
-        writer.write({ type: 'text-end', id: textId });
         writer.write({ type: 'finish' });
       },
     }),

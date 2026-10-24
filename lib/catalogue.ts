@@ -14,8 +14,11 @@ export type CatalogueItem = {
   owner?: string;
 };
 
+export type SearchScope = 'all' | 'company' | 'person';
+
 export type CatalogueSearchInput = {
   query?: string;
+  scope?: SearchScope;
   kind?: 'challenge' | 'project' | 'any';
   industry?: string;
   technology?: string;
@@ -992,30 +995,113 @@ export const catalogueSeeds: CatalogueItem[] = [
   },
 ];
 
-function scoreItem(item: CatalogueItem, query: string) {
-  if (!query) return 1;
-  const haystack =
-    `${item.title} ${item.company} ${item.description} ${item.tags.join(' ')} ${item.industry} ${item.difficulty} ${item.kind}`.toLowerCase();
-  const terms = query
+function queryTerms(query: string) {
+  return query
     .toLowerCase()
     .split(/[^a-z0-9+/]+/)
     .filter((term) => term.length > 1);
-  if (terms.length === 0) return 1;
+}
+
+/** Real company name (excludes community “by Name” labels). */
+export function companyLabel(item: CatalogueItem) {
+  if (item.kind === 'project') return '';
+  if (item.company.toLowerCase().startsWith('by ')) return '';
+  return item.company.trim();
+}
+
+/** Builder / person name for community projects. */
+export function personLabel(item: CatalogueItem) {
+  if (item.owner?.trim()) return item.owner.trim();
+  if (item.company.toLowerCase().startsWith('by ')) return item.company.slice(3).trim();
+  return '';
+}
+
+function parseScopedQuery(raw: string): { scope: SearchScope; query: string } {
+  const trimmed = raw.trim();
+  const prefixed = trimmed.match(/^(company|org|person|people|builder|user)\s*:\s*(.+)$/i);
+  if (!prefixed) return { scope: 'all', query: trimmed };
+  const key = prefixed[1]!.toLowerCase();
+  const query = prefixed[2]!.trim();
+  if (key === 'company' || key === 'org') return { scope: 'company', query };
+  return { scope: 'person', query };
+}
+
+function fieldScore(haystack: string, query: string, terms: string[], weight: number) {
+  const value = haystack.toLowerCase();
+  if (!value) return 0;
   let score = 0;
+  if (value === query.toLowerCase()) score += weight * 4;
+  if (value.startsWith(query.toLowerCase())) score += weight * 3;
+  if (value.includes(query.toLowerCase())) score += weight * 2;
   for (const term of terms) {
-    if (haystack.includes(term)) score += 2;
-    if (item.title.toLowerCase().includes(term)) score += 3;
-    if (item.tags.some((tag) => tag.toLowerCase().includes(term))) score += 2;
-    if (item.industry.toLowerCase().includes(term)) score += 2;
+    if (value.includes(term)) score += weight;
   }
   return score;
+}
+
+export function scoreItem(
+  item: CatalogueItem,
+  query: string,
+  scope: SearchScope = 'all',
+) {
+  const parsed = scope === 'all' ? parseScopedQuery(query) : { scope, query };
+  const activeScope = parsed.scope;
+  const activeQuery = parsed.query.trim();
+  if (!activeQuery) return 1;
+
+  const terms = queryTerms(activeQuery);
+  if (terms.length === 0 && activeQuery.length < 2) return 1;
+
+  const company = companyLabel(item);
+  const person = personLabel(item);
+
+  if (activeScope === 'company') {
+    return fieldScore(company, activeQuery, terms, 4);
+  }
+  if (activeScope === 'person') {
+    return fieldScore(person, activeQuery, terms, 4);
+  }
+
+  return (
+    fieldScore(item.title, activeQuery, terms, 4) +
+    fieldScore(company, activeQuery, terms, 5) +
+    fieldScore(person, activeQuery, terms, 5) +
+    fieldScore(item.description, activeQuery, terms, 2) +
+    fieldScore(item.industry, activeQuery, terms, 3) +
+    fieldScore(item.tags.join(' '), activeQuery, terms, 3) +
+    fieldScore(item.difficulty, activeQuery, terms, 1) +
+    fieldScore(item.kind, activeQuery, terms, 1)
+  );
+}
+
+export function itemMatchesQuery(
+  item: CatalogueItem,
+  query: string,
+  scope: SearchScope = 'all',
+) {
+  if (!query.trim()) return true;
+  return scoreItem(item, query, scope) > 0;
 }
 
 export function searchCatalogue(
   items: CatalogueItem[],
   input: CatalogueSearchInput = {},
-): { matches: CatalogueHit[]; filters: Required<Pick<CatalogueSearchInput, 'query' | 'kind'>> & Omit<CatalogueSearchInput, 'query' | 'kind' | 'limit'>; total: number } {
-  const query = input.query?.trim() ?? '';
+): {
+  matches: CatalogueHit[];
+  filters: {
+    query: string;
+    scope: SearchScope;
+    kind: 'challenge' | 'project' | 'any';
+    industry?: string;
+    technology?: string;
+    difficulty?: string;
+  };
+  total: number;
+} {
+  const rawQuery = input.query?.trim() ?? '';
+  const parsed = parseScopedQuery(rawQuery);
+  const scope = input.scope ?? parsed.scope;
+  const query = input.scope ? rawQuery : parsed.query;
   const kind = input.kind ?? 'any';
   const industry = input.industry?.trim();
   const technology = input.technology?.trim();
@@ -1033,7 +1119,7 @@ export function searchCatalogue(
     .filter((item) =>
       !difficulty ? true : item.difficulty.toLowerCase() === difficulty.toLowerCase(),
     )
-    .map((item) => ({ item, score: scoreItem(item, query) }))
+    .map((item) => ({ item, score: scoreItem(item, query, scope) }))
     .filter(({ score }) => (query ? score > 0 : true))
     .sort((a, b) => b.score - a.score || b.item.builders - a.item.builders);
 
@@ -1054,6 +1140,7 @@ export function searchCatalogue(
     total: ranked.length,
     filters: {
       query,
+      scope,
       kind,
       industry: industry || undefined,
       technology: technology || undefined,
