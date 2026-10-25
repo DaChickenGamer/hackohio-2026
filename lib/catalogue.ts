@@ -1002,6 +1002,27 @@ function queryTerms(query: string) {
     .filter((term) => term.length > 1);
 }
 
+const LANGUAGE_TAGS = new Set([
+  'Python',
+  'React',
+  'JavaScript',
+  'TypeScript',
+  'Swift',
+  'Next.js',
+  'Supabase',
+]);
+
+/** Split mixed tags into languages vs focus areas for separate card regions. */
+export function splitItemTags(tags: string[]) {
+  const languages = tags.filter((tag) => LANGUAGE_TAGS.has(tag));
+  const focus = tags.filter((tag) => !LANGUAGE_TAGS.has(tag));
+  return { languages, focus };
+}
+
+export function isLanguageTag(tag: string) {
+  return LANGUAGE_TAGS.has(tag);
+}
+
 /** Real company name (excludes community “by Name” labels). */
 export function companyLabel(item: CatalogueItem) {
   if (item.kind === 'project') return '';

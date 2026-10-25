@@ -684,16 +684,50 @@ select {
   transform: none;
   border: none;
 }
-.visual-caption {
+.visual-langs {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 40px;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  color: rgba(255,255,255,.95);
+  line-height: 1.25;
+  text-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+.visual-focus {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  left: 48%;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  color: rgba(255,255,255,.95);
+  line-height: 1.25;
+  text-align: right;
+  text-shadow: 0 1px 2px rgba(0,0,0,.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.visual-industry {
   position: absolute;
   bottom: 6px;
   left: 8px;
+  right: 52%;
+  z-index: 1;
   font-size: 9px;
   font-weight: 500;
   letter-spacing: .08em;
   color: rgba(255,255,255,.85);
-  opacity: 1;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .save-button {
   position: absolute;
@@ -816,6 +850,7 @@ select {
   position: absolute;
   top: 8px;
   left: 8px;
+  z-index: 1;
   font-size: 9px;
   letter-spacing: .06em;
   color: #fff;
@@ -823,6 +858,9 @@ select {
   padding: 2px 6px;
   border-radius: var(--radius);
   font-weight: 500;
+}
+.project-card:has(.project-badge) .visual-langs {
+  top: 28px;
 }
 
 .bottom-banner {
@@ -1014,6 +1052,19 @@ form input:focus, form textarea:focus, form select:focus {
   opacity: .9;
 }
 .detail-byline { color: var(--muted); font-size: 13px; margin-bottom: 12px }
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.detail-meta strong {
+  color: var(--ink);
+  font-weight: 500;
+  margin-right: 6px;
+}
 .detail-description { font-size: 15px; line-height: 1.6; color: #424242; margin: 20px 0 }
 .dialog-inner h3 { font-size: 14px; margin-top: 20px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--primary) }
 .brief-list { padding-left: 18px; font-size: 14px; line-height: 1.8; color: #616161 }
