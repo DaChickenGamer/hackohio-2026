@@ -1080,8 +1080,9 @@ form input:focus, form textarea:focus, form select:focus {
 }
 .external { margin-bottom: 10px }
 
-.feedback-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 20px }
+.feedback-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px }
 .feedback-heading h3 { margin: 0 }
+.feedback-count { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase }
 .feedback-empty {
   padding: 20px;
   background: #f5f5f5;
@@ -1100,10 +1101,15 @@ form input:focus, form textarea:focus, form select:focus {
   background: #fafafa;
   box-shadow: var(--shadow-1);
 }
+.thread-author { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px }
 .thread strong { font-size: 14px; font-weight: 500 }
+.author-company { font-size: 13px; font-weight: 400; color: var(--muted) }
+.author-company::before { content: " · "; }
 .thread-status { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em }
 .thread p { font-size: 14px; line-height: 1.6; color: #424242; white-space: pre-wrap; overflow-wrap: anywhere }
 .thread .reply { padding-left: 12px; border-left: 3px solid var(--primary) }
+.thread .reply strong { font-size: 13px }
+.thread .reply .author-company { font-size: 12px }
 .reply-form { display: flex; gap: 8px; margin-top: 10px }
 .reply-form input { font-size: 14px }
 
